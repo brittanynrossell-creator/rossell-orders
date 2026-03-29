@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rossell Creations — Order Manager</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy:  #1A2E4A; --teal: #2A7F7F; --gold: #D4A843;
+    --blush: #F7F1EA; --white: #FFFFFF;
+    --red:   #C0392B; --green: #1E6B2E;
+    --lgray: #F0EDE8; --mgray: #B0A99F; --text: #2C2416;
+    --shadow: 0 4px 24px rgba(26,46,74,.10);
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--blush); color: var(--text); min-height: 100vh; }
+
+  header {
+    background: var(--navy); padding: 0 2rem; display: flex;
+    align-items: center; justify-content: space-between; height: 64px;
+    position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 12px rgba(0,0,0,.25);
+  }
+  .logo { display: flex; align-items: center; gap: .75rem; }
+  .logo-icon { width: 36px; height: 36px; background: var(--gold); border-radius: 8px; display: grid; place-items: center; font-size: 18px; }
+  .logo-text { font-family: 'DM Serif Display', serif; color: var(--white); font-size: 1.2rem; }
+  .logo-sub  { color: var(--gold); font-size: .7rem; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; }
+  .header-actions { display: flex; gap: .75rem; align-items: center; }
+  .badge { background: var(--teal); color: white; padding: .25rem .75rem; border-radius: 20px; font-size: .75rem; font-weight: 600; }
+  .sync-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--mgray); display: inline-block; margin-right: 4px; }
+  .sync-dot.live { background: #4CAF50; box-shadow: 0 0 6px #4CAF50; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+  .tabs { background: var(--white); border-bottom: 2px solid var(--lgray); display: flex; padding: 0 2rem; overflow-x: auto; }
+  .tab { padding: .9rem 1.4rem; font-size: .88rem; font-weight: 500; cursor: pointer; border-bottom: 3px solid transparent; color: var(--mgray); transition: all .2s; white-space: nowrap; }
+  .tab.active { color: var(--navy); border-bottom-color: var(--gold); font-weight: 600; }
+  .tab:hover:not(.active) { color: var(--navy); }
+
+  .page { display: none; padding: 1.5rem 2rem 3rem; max-width: 1400px; margin: 0 auto; }
+  .page.active { display: block; }
+
+  .card { background: var(--white); border-radius: 14px; box-shadow: var(--shadow); padding: 1.5rem; margin-bottom: 1.25rem; }
+  .card-title { font-family: 'DM Serif Display', serif; font-size: 1.1rem; color: var(--navy); margin-bottom: 1.25rem; display: flex; align-items: center; gap: .5rem; }
+
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-bottom: 1.25rem; }
+  .stat { background: var(--white); border-radius: 12px; padding: 1.1rem 1.25rem; box-shadow: var(--shadow); border-left: 4px solid var(--gold); }
+  .stat-num { font-family: 'DM Serif Display', serif; font-size: 2rem; color: var(--navy); line-height: 1; }
+  .stat-label { font-size: .78rem; color: var(--mgray); margin-top: .25rem; font-weight: 500; }
+  .stat.green { border-left-color: var(--green); }
+  .stat.red   { border-left-color: var(--red); }
+  .stat.teal  { border-left-color: var(--teal); }
+
+  .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; }
+  .form-group { display: flex; flex-direction: column; gap: .35rem; }
+  .form-group.full { grid-column: 1 / -1; }
+  label { font-size: .78rem; font-weight: 600; color: var(--navy); text-transform: uppercase; letter-spacing: .05em; }
+  input, select, textarea {
+    padding: .6rem .85rem; border: 1.5px solid #DDD5C8; border-radius: 8px;
+    font-family: 'DM Sans', sans-serif; font-size: .9rem; color: var(--text);
+    background: var(--blush); transition: border .15s, box-shadow .15s; width: 100%;
+  }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: var(--teal); box-shadow: 0 0 0 3px rgba(42,127,127,.12); background: white; }
+  textarea { resize: vertical; min-height: 70px; }
+
+  .btn { padding: .65rem 1.4rem; border: none; border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: .88rem; font-weight: 600; cursor: pointer; transition: all .15s; display: inline-flex; align-items: center; gap: .4rem; }
+  .btn-primary { background: var(--navy); color: white; }
+  .btn-primary:hover { background: #243d62; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(26,46,74,.25); }
+  .btn-success { background: var(--green); color: white; }
+  .btn-gold    { background: var(--gold); color: var(--navy); }
+  .btn-gold:hover { background: #c49a38; }
+  .btn-ghost   { background: transparent; color: var(--navy); border: 1.5px solid #DDD5C8; }
+  .btn-ghost:hover { background: var(--lgray); }
+  .btn-danger  { background: var(--red); color: white; }
+  .btn-teal    { background: var(--teal); color: white; }
+  .btn-teal:hover { background: #226a6a; }
+  .btn-sm { padding: .35rem .75rem; font-size: .8rem; border-radius: 6px; }
+
+  .source-pills { display: flex; flex-wrap: wrap; gap: .5rem; }
+  .pill { padding: .4rem .9rem; border-radius: 20px; font-size: .8rem; font-weight: 600; cursor: pointer; border: 2px solid transparent; transition: all .15s; background: var(--lgray); color: var(--mgray); }
+  .pill.active-pill { border-color: var(--navy); background: var(--navy); color: white; }
+  .pill:hover:not(.active-pill) { border-color: var(--navy); color: var(--navy); }
+
+  .table-wrap { overflow-x: auto; border-radius: 12px; box-shadow: var(--shadow); }
+  table { width: 100%; border-collapse: collapse; background: white; font-size: .84rem; min-width: 860px; }
+  thead { background: var(--navy); color: white; }
+  th { padding: .75rem 1rem; text-align: left; font-weight: 600; font-size: .78rem; letter-spacing: .04em; white-space: nowrap; }
+  td { padding: .7rem 1rem; border-bottom: 1px solid var(--lgray); vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--blush); }
+  tr.delivered-row td { opacity: .5; }
+
+  .tag { display: inline-block; padding: .2rem .55rem; border-radius: 5px; font-size: .74rem; font-weight: 600; white-space: nowrap; }
+  .tag-size  { background: #FDEBD0; color: #7D4F00; }
+  .tag-type  { background: #D6E8F5; color: #0D3A6B; }
+  .tag-color-swatch { display: inline-block; width: 14px; height: 14px; border-radius: 3px; vertical-align: middle; margin-right: 4px; border: 1px solid rgba(0,0,0,.15); }
+  .badge-paid   { background: #D5EDDA; color: var(--green); padding: .2rem .55rem; border-radius: 5px; font-size: .74rem; font-weight: 700; }
+  .badge-unpaid { background: #FCE4D6; color: var(--red);   padding: .2rem .55rem; border-radius: 5px; font-size: .74rem; font-weight: 700; }
+  .src-fb  { background: #E7F0FD; color: #1A56C4; }
+  .src-txt { background: #E8F5E9; color: #2E7D32; }
+  .src-sq  { background: #FFF9E7; color: #7D5700; }
+  .src-msg { background: #F3E8FD; color: #6A1B9A; }
+  .src-em  { background: #FDE8EE; color: #AD1457; }
+  .src-in  { background: #E0F2F1; color: #00695C; }
+  .chk { width: 18px; height: 18px; cursor: pointer; accent-color: var(--green); }
+
+  .filter-bar { display: flex; flex-wrap: wrap; gap: .75rem; align-items: center; margin-bottom: 1rem; }
+  .filter-bar input, .filter-bar select { max-width: 200px; }
+  .filter-bar .spacer { flex: 1; }
+
+  .empty { text-align: center; padding: 3rem 1rem; color: var(--mgray); }
+  .empty-icon { font-size: 3rem; margin-bottom: .75rem; }
+  .empty h3 { font-size: 1.1rem; color: var(--navy); margin-bottom: .35rem; }
+
+  #toast { position: fixed; bottom: 2rem; right: 2rem; background: var(--navy); color: white; padding: .85rem 1.4rem; border-radius: 10px; font-size: .88rem; font-weight: 500; box-shadow: 0 8px 32px rgba(0,0,0,.2); transform: translateY(120%); opacity: 0; transition: all .3s cubic-bezier(.34,1.56,.64,1); z-index: 999; }
+  #toast.show { transform: translateY(0); opacity: 1; }
+  #toast.success { background: var(--green); }
+  #toast.error   { background: var(--red); }
+
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 200; align-items: center; justify-content: center; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: white; border-radius: 16px; padding: 2rem; max-width: 480px; width: 90%; box-shadow: 0 20px 60px rgba(0,0,0,.3); }
+  .modal h3 { font-family: 'DM Serif Display', serif; font-size: 1.3rem; color: var(--navy); margin-bottom: 1rem; }
+  .modal-actions { display: flex; gap: .75rem; margin-top: 1.5rem; justify-content: flex-end; }
+
+  /* ── SQUARE SETUP ── */
+  .setup-steps { counter-reset: step; display: flex; flex-direction: column; gap: 1rem; }
+  .step {
+    display: flex; gap: 1rem; align-items: flex-start;
+    background: var(--blush); border-radius: 10px; padding: 1rem 1.25rem;
+    border-left: 3px solid var(--gold);
+  }
+  .step-num {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: var(--navy); color: white; font-weight: 700; font-size: .85rem;
+    display: grid; place-items: center; flex-shrink: 0;
+  }
+  .step-body h4 { font-size: .92rem; font-weight: 600; color: var(--navy); margin-bottom: .25rem; }
+  .step-body p, .step-body li { font-size: .85rem; color: var(--text); line-height: 1.6; }
+  .step-body a { color: var(--teal); font-weight: 600; }
+  .step-body code { background: #E8E2DA; padding: .1rem .4rem; border-radius: 4px; font-size: .82rem; }
+  .step.done { border-left-color: var(--green); }
+  .step.done .step-num { background: var(--green); }
+
+  .connection-box {
+    background: linear-gradient(135deg, var(--navy), var(--teal));
+    border-radius: 12px; padding: 1.5rem; color: white; margin-bottom: 1.25rem;
+  }
+  .connection-box h3 { font-family: 'DM Serif Display', serif; font-size: 1.2rem; margin-bottom: .5rem; }
+  .connection-box p  { font-size: .88rem; opacity: .85; margin-bottom: 1rem; }
+  .url-input-row { display: flex; gap: .75rem; flex-wrap: wrap; }
+  .url-input-row input { flex: 1; min-width: 260px; background: rgba(255,255,255,.15); border-color: rgba(255,255,255,.3); color: white; }
+  .url-input-row input::placeholder { color: rgba(255,255,255,.5); }
+  .url-input-row input:focus { background: rgba(255,255,255,.25); border-color: white; }
+
+  .status-connected { display: flex; align-items: center; gap: .5rem; color: #6FE082; font-weight: 600; font-size: .88rem; }
+  .status-disconnected { color: rgba(255,255,255,.6); font-size: .84rem; }
+
+  .last-sync { font-size: .78rem; color: var(--mgray); margin-top: .5rem; }
+
+  .paste-zone { border: 2px dashed #C8BFB2; border-radius: 10px; padding: 1.25rem; background: var(--blush); margin-bottom: 1rem; }
+  .paste-zone textarea { border: none; background: transparent; font-size: .88rem; min-height: 100px; padding: 0; }
+  .paste-zone textarea:focus { box-shadow: none; background: transparent; }
+
+  @media (max-width: 700px) {
+    header { padding: 0 1rem; }
+    .page { padding: 1rem 1rem 3rem; }
+    .filter-bar { flex-direction: column; align-items: stretch; }
+    .filter-bar input, .filter-bar select { max-width: 100%; }
+    .url-input-row { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">✦</div>
+    <div>
+      <div class="logo-text">Rossell Creations</div>
+      <div class="logo-sub">Order Manager</div>
+    </div>
+  </div>
+  <div class="header-actions">
+    <span id="sync-indicator" class="status-disconnected" style="font-size:.78rem">⚪ Not connected</span>
+    <span class="badge" id="pending-badge">0 Pending</span>
+    <button class="btn btn-gold btn-sm" onclick="exportCSV()">⬇ Export CSV</button>
+  </div>
+</header>
+
+<div class="tabs">
+  <div class="tab active" onclick="showTab('dashboard')">📊 Dashboard</div>
+  <div class="tab" onclick="showTab('add')">➕ Add Order</div>
+  <div class="tab" onclick="showTab('orders')">📋 All Orders</div>
+  <div class="tab" onclick="showTab('square')">🟡 Square Sync</div>
+</div>
+
+<!-- ══ DASHBOARD ══ -->
+<div class="page active" id="tab-dashboard">
+  <div class="stats" id="stats-row"></div>
+  <div class="card">
+    <div class="card-title">🔴 Needs Attention — Unpaid & Not Delivered</div>
+    <div id="attention-table"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">📦 Recent Orders</div>
+    <div id="recent-table"></div>
+  </div>
+</div>
+
+<!-- ══ ADD ORDER ══ -->
+<div class="page" id="tab-add">
+  <div class="card">
+    <div class="card-title">➕ Add New Order</div>
+    <div class="form-group" style="margin-bottom:1.25rem">
+      <label>Order Source</label>
+      <div class="source-pills">
+        <div class="pill active-pill" onclick="selectSource(this,'Facebook Group')">📘 FB Group</div>
+        <div class="pill" onclick="selectSource(this,'Facebook Message')">💬 FB Message</div>
+        <div class="pill" onclick="selectSource(this,'Text Message')">📱 Text</div>
+        <div class="pill" onclick="selectSource(this,'Instagram')">📸 Instagram</div>
+        <div class="pill" onclick="selectSource(this,'Email')">📧 Email</div>
+        <div class="pill" onclick="selectSource(this,'Square Website')">🌐 Square</div>
+        <div class="pill" onclick="selectSource(this,'In Person')">🤝 In Person</div>
+      </div>
+      <input type="hidden" id="f-source" value="Facebook Group">
+    </div>
+    <div class="form-grid">
+      <div class="form-group"><label>Date *</label><input type="date" id="f-date"></div>
+      <div class="form-group"><label>Customer Name *</label><input type="text" id="f-name" placeholder="Full name"></div>
+      <div class="form-group">
+        <label>Size</label>
+        <select id="f-size">
+          <option value="">— Select —</option>
+          <optgroup label="Toddler / Baby">
+            <option>18 Month</option><option>2T</option><option>3T</option><option>4T</option>
+          </optgroup>
+          <optgroup label="Youth">
+            <option>Youth XS</option><option>Youth S</option><option>Youth M</option><option>Youth L</option><option>Youth XL</option>
+          </optgroup>
+          <optgroup label="Adult">
+            <option>Adult XS</option><option>Adult S</option><option>Adult M</option><option>Adult L</option>
+            <option>Adult XL</option><option>Adult 2XL</option><option>Adult 3XL</option><option>Adult 4XL</option><option>Adult 5XL</option>
+          </optgroup>
+          <optgroup label="Other"><option>One Size</option><option>N/A</option></optgroup>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Product Type</label>
+        <select id="f-type">
+          <option value="">— Select —</option>
+          <option>T-Shirt</option><option>Sweatshirt</option><option>Crew Neck</option>
+          <option>Zip-up Hoodie</option><option>COMFORT COLOR Shirt</option>
+          <option>Laser Engraving</option><option>3D Print</option><option>Bundle</option><option>Other</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Color</label><input type="text" id="f-color" placeholder="e.g. Sage, Black, Trojan Blue"></div>
+      <div class="form-group"><label>Price ($)</label><input type="number" id="f-price" placeholder="0.00" step="0.01" min="0"></div>
+      <div class="form-group">
+        <label>Paid?</label>
+        <select id="f-paid"><option value="NO">❌ No</option><option value="YES">✅ Yes</option></select>
+      </div>
+      <div class="form-group full"><label>Description / Design</label><textarea id="f-desc" placeholder="e.g. Cowboy Goose, Trojans Heart Arch, custom text..."></textarea></div>
+      <div class="form-group full"><label>Notes (optional)</label><textarea id="f-notes" placeholder="Rush order, special instructions, etc." style="min-height:50px"></textarea></div>
+    </div>
+    <div style="display:flex;gap:.75rem;margin-top:1.25rem;flex-wrap:wrap">
+      <button class="btn btn-primary" onclick="addOrder()">✦ Save Order</button>
+      <button class="btn btn-ghost" onclick="clearForm()">Clear</button>
+      <button class="btn btn-gold" onclick="addOrder(true)">Save & Add Another</button>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">📋 Quick Paste Helper</div>
+    <p style="font-size:.85rem;color:var(--mgray);margin-bottom:.75rem">Paste a Facebook comment, text, or DM here as a reference while filling the form above.</p>
+    <div class="paste-zone">
+      <textarea placeholder="Paste the raw order message here for reference…&#10;&#10;e.g. 'Hi! Can I get an adult large black t-shirt with the Cowboy Goose design? My daughter also wants a youth medium in sage.'"></textarea>
+    </div>
+  </div>
+</div>
+
+<!-- ══ ALL ORDERS ══ -->
+<div class="page" id="tab-orders">
+  <div class="filter-bar">
+    <input type="text" id="search-input" placeholder="🔍 Search name, design, color…" oninput="renderOrders()">
+    <select id="filter-paid" onchange="renderOrders()">
+      <option value="">All Payment Status</option>
+      <option value="YES">Paid</option><option value="NO">Unpaid</option>
+    </select>
+    <select id="filter-source" onchange="renderOrders()">
+      <option value="">All Sources</option>
+      <option>Facebook Group</option><option>Facebook Message</option><option>Text Message</option>
+      <option>Instagram</option><option>Email</option><option>Square Website</option><option>In Person</option>
+    </select>
+    <select id="filter-delivered" onchange="renderOrders()">
+      <option value="">All Statuses</option>
+      <option value="no">Not Delivered</option><option value="yes">Delivered</option>
+    </select>
+    <div class="spacer"></div>
+    <button class="btn btn-ghost btn-sm" onclick="exportCSV()">⬇ Export CSV</button>
+  </div>
+  <div class="table-wrap" id="orders-table-wrap"></div>
+</div>
+
+<!-- ══ SQUARE SYNC ══ -->
+<div class="page" id="tab-square">
+
+  <!-- Connection box -->
+  <div class="connection-box">
+    <h3>🔗 Google Sheet Connection</h3>
+    <p>Paste your Google Apps Script Web App URL below. Once connected, Square orders flow automatically into your tracker 24/7.</p>
+    <div class="url-input-row">
+      <input type="url" id="sheet-url" placeholder="https://script.google.com/macros/s/…/exec" oninput="onUrlInput()">
+      <button class="btn btn-gold" onclick="saveAndTest()">Connect & Test</button>
+    </div>
+    <div id="conn-status" class="status-disconnected" style="margin-top:.75rem">Not connected</div>
+    <div class="last-sync" id="last-sync-text"></div>
+  </div>
+
+  <!-- Setup steps -->
+  <div class="card">
+    <div class="card-title">🛠 One-Time Setup — ~10 Minutes</div>
+    <div class="setup-steps">
+
+      <div class="step" id="step1">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <h4>Open Google Apps Script</h4>
+          <p>Go to <a href="https://script.google.com" target="_blank">script.google.com</a> → click <strong>New Project</strong>. Delete all default code in the editor.</p>
+        </div>
+      </div>
+
+      <div class="step" id="step2">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <h4>Paste the Webhook Script</h4>
+          <p>Download the file <strong>square-webhook.gs</strong> (provided alongside this app). Copy its entire contents and paste into the Apps Script editor. Save with <strong>Ctrl+S</strong>.</p>
+        </div>
+      </div>
+
+      <div class="step" id="step3">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <h4>Run the Test Function First</h4>
+          <p>In the Apps Script editor, select <code>testSetup</code> from the function dropdown → click <strong>▶ Run</strong>. Accept the permissions popup. This creates your Google Sheet with the right columns and inserts a test order so you can confirm it's working.</p>
+        </div>
+      </div>
+
+      <div class="step" id="step4">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <h4>Deploy as Web App</h4>
+          <p>Click <strong>Deploy → New deployment</strong> → choose type <strong>Web app</strong>.<br>
+          Set: <em>Execute as: Me</em> | <em>Who has access: Anyone</em><br>
+          Click <strong>Deploy</strong> → copy the <strong>Web App URL</strong> (ends in <code>/exec</code>).</p>
+        </div>
+      </div>
+
+      <div class="step" id="step5">
+        <div class="step-num">5</div>
+        <div class="step-body">
+          <h4>Paste URL Above & Connect</h4>
+          <p>Paste the Web App URL into the connection box above and click <strong>Connect & Test</strong>. Your test order should appear in the Orders tab immediately.</p>
+        </div>
+      </div>
+
+      <div class="step" id="step6">
+        <div class="step-num">6</div>
+        <div class="step-body">
+          <h4>Set Up Square Webhook</h4>
+          <p>Go to <a href="https://developer.squareup.com" target="_blank">developer.squareup.com</a> → your app → <strong>Webhooks</strong>.<br>
+          Add endpoint: paste your <strong>Web App URL</strong><br>
+          Subscribe to events: <code>order.created</code> · <code>order.updated</code> · <code>payment.created</code><br>
+          From now on, every Square order triggers automatically — no action needed from you!</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Manual sync -->
+  <div class="card">
+    <div class="card-title">🔄 Manual Sync</div>
+    <p style="font-size:.85rem;color:var(--mgray);margin-bottom:1rem">Orders sync automatically via webhook, but you can also pull manually at any time to catch anything missed.</p>
+    <div style="display:flex;gap:.75rem;align-items:center;flex-wrap:wrap">
+      <button class="btn btn-teal" onclick="pullFromSheet()">⬇ Pull Now from Google Sheet</button>
+      <div style="display:flex;gap:.5rem;align-items:center">
+        <label style="text-transform:none;font-size:.85rem;font-weight:400;white-space:nowrap">Auto-pull every</label>
+        <select style="width:auto" id="sync-interval" onchange="setAutoSync()">
+          <option value="0">Manual only</option>
+          <option value="5">5 minutes</option>
+          <option value="15">15 minutes</option>
+          <option value="30">30 minutes</option>
+          <option value="60">1 hour</option>
+        </select>
+      </div>
+    </div>
+    <div id="sync-log" style="margin-top:.75rem;font-size:.82rem;color:var(--mgray)"></div>
+  </div>
+
+</div>
+
+<!-- Edit Modal -->
+<div class="modal-overlay" id="edit-modal">
+  <div class="modal">
+    <h3>Edit Order</h3>
+    <input type="hidden" id="edit-id">
+    <div class="form-grid" style="margin-bottom:0">
+      <div class="form-group"><label>Customer Name</label><input id="e-name"></div>
+      <div class="form-group"><label>Size</label><input id="e-size"></div>
+      <div class="form-group"><label>Type</label><input id="e-type"></div>
+      <div class="form-group"><label>Color</label><input id="e-color"></div>
+      <div class="form-group"><label>Price ($)</label><input id="e-price" type="number"></div>
+      <div class="form-group"><label>Paid?</label>
+        <select id="e-paid"><option value="NO">No</option><option value="YES">Yes</option></select>
+      </div>
+      <div class="form-group full"><label>Description</label><textarea id="e-desc" style="min-height:60px"></textarea></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveEdit()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ── STATE ─────────────────────────────────────────────────────
+let orders = JSON.parse(localStorage.getItem('rc_orders') || '[]');
+let sheetUrl = localStorage.getItem('rc_sheet_url') || '';
+let autoTimer = null;
+let isConnected = false;
+
+// Demo seed
+if (orders.length === 0) {
+  orders = [
+    { id: uid(), date:'2026-03-17', name:'Briann Williams',           size:'Adult 2XL', type:'T-Shirt',             color:'Sage',        desc:'Cowboy Goose',              price:15, paid:'NO',  source:'Text Message',    created:false, delivered:false, notes:'' },
+    { id: uid(), date:'2026-03-17', name:'Briann Williams',           size:'18 Month',  type:'T-Shirt',             color:'Sage',        desc:'Cowboy Goose',              price:15, paid:'NO',  source:'Text Message',    created:false, delivered:false, notes:'' },
+    { id: uid(), date:'2026-03-17', name:'Christine Carman',          size:'Adult 2XL', type:'Sweatshirt',          color:'Black',       desc:'Trojans <3',                price:30, paid:'NO',  source:'Facebook Group',  created:false, delivered:false, notes:'' },
+    { id: uid(), date:'2026-03-17', name:'Christine Carman',          size:'Adult 2XL', type:'Zip-up Hoodie',       color:'Black',       desc:'Trojans Heart Arch',        price:25, paid:'NO',  source:'Facebook Group',  created:false, delivered:false, notes:'' },
+    { id: uid(), date:'2026-03-17', name:'Bluegrass Breeze - Gracie', size:'Adult M',   type:'T-Shirt',             color:'Black',       desc:'Bluegrass Breeze',          price:8,  paid:'YES', source:'In Person',       created:true,  delivered:false, notes:'' },
+    { id: uid(), date:'2026-03-17', name:'Bluegrass Breeze - Callie', size:'Adult S',   type:'T-Shirt',             color:'Black',       desc:'Bluegrass Breeze',          price:8,  paid:'YES', source:'In Person',       created:true,  delivered:false, notes:'' },
+    { id: uid(), date:'2026-03-21', name:'Erin Mabe',                 size:'Adult XL',  type:'T-Shirt',             color:'Black',       desc:"Sorry. Can't. Softball.",   price:15, paid:'YES', source:'Facebook Message', created:false, delivered:false, notes:'' },
+    { id: uid(), date:'2026-03-21', name:'Erin Mabe',                 size:'Adult XL',  type:'T-Shirt',             color:'Trojan Blue', desc:"I'm sorry for what I said", price:15, paid:'YES', source:'Facebook Message', created:false, delivered:false, notes:'' },
+    { id: uid(), date:'2026-03-27', name:'Zoie Obleck',               size:'Adult M',   type:'COMFORT COLOR Shirt', color:'Brown',       desc:'Floral God is Good',        price:18, paid:'NO',  source:'Square Website',  created:false, delivered:false, notes:'' },
+    { id: uid(), date:'2026-03-27', name:'Zoie Obleck',               size:'Adult M',   type:'Crew Neck',           color:'Light Grey',  desc:'Trojan Bow',                price:25, paid:'NO',  source:'Square Website',  created:false, delivered:false, notes:'' },
+  ];
+  save();
+}
+
+if (sheetUrl) { document.getElementById('sheet-url').value = sheetUrl; updateConnectionUI(true); }
+document.getElementById('f-date').value = new Date().toISOString().slice(0,10);
+
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+function save() { localStorage.setItem('rc_orders', JSON.stringify(orders)); updateBadge(); }
+
+// ── TABS ──────────────────────────────────────────────────────
+function showTab(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  ['dashboard','add','orders','square'].forEach((t,i) => {
+    if (t === id) document.querySelectorAll('.tab')[i].classList.add('active');
+  });
+  if (id === 'dashboard') renderDashboard();
+  if (id === 'orders')    renderOrders();
+}
+
+// ── SOURCE PILLS ──────────────────────────────────────────────
+function selectSource(el, val) {
+  document.querySelectorAll('.pill').forEach(p => p.classList.remove('active-pill'));
+  el.classList.add('active-pill');
+  document.getElementById('f-source').value = val;
+}
+
+// ── ADD ORDER ─────────────────────────────────────────────────
+function addOrder(again = false) {
+  const name = document.getElementById('f-name').value.trim();
+  const date = document.getElementById('f-date').value;
+  if (!name) { toast('Please enter a customer name', 'error'); return; }
+  if (!date) { toast('Please select a date', 'error'); return; }
+  orders.unshift({
+    id: uid(), date, name,
+    size:  document.getElementById('f-size').value,
+    type:  document.getElementById('f-type').value,
+    color: document.getElementById('f-color').value,
+    desc:  document.getElementById('f-desc').value,
+    price: parseFloat(document.getElementById('f-price').value) || 0,
+    paid:  document.getElementById('f-paid').value,
+    source: document.getElementById('f-source').value,
+    notes: document.getElementById('f-notes').value,
+    created: false, delivered: false,
+  });
+  save(); toast('Order saved! ✦', 'success');
+  if (again) clearForm(false); else { clearForm(); showTab('orders'); }
+}
+
+function clearForm(resetSource = true) {
+  ['f-name','f-color','f-desc','f-notes','f-price'].forEach(id => document.getElementById(id).value = '');
+  ['f-size','f-type'].forEach(id => document.getElementById(id).selectedIndex = 0);
+  document.getElementById('f-paid').value = 'NO';
+  document.getElementById('f-date').value = new Date().toISOString().slice(0,10);
+  if (resetSource) {
+    document.querySelectorAll('.pill').forEach(p => p.classList.remove('active-pill'));
+    document.querySelectorAll('.pill')[0].classList.add('active-pill');
+    document.getElementById('f-source').value = 'Facebook Group';
+  }
+}
+
+// ── COLORS ───────────────────────────────────────────────────
+const COLOR_MAP = {
+  'black':'#222','white':'#f8f8f8','grey':'#9e9e9e','gray':'#9e9e9e',
+  'light grey':'#d0d0d0','light gray':'#d0d0d0','sage':'#8fac8f',
+  'green':'#4CAF50','navy':'#1a2e4a','blue':'#2196F3','trojan blue':'#1a4fa0',
+  'royal blue':'#1a4fa0','red':'#f44336','maroon':'#7B1010','burgundy':'#800020',
+  'pink':'#E91E8C','hot pink':'#FF69B4','blush':'#ffb6c1','purple':'#9C27B0',
+  'lavender':'#E6CFFF','yellow':'#FFC107','gold':'#D4A843','mustard':'#C19A1B',
+  'orange':'#FF9800','burnt orange':'#CC5500','brown':'#795548',
+  'tan':'#D2B48C','cream':'#FFFDD0','heather':'#B0A9B5',
+};
+function swatchFor(c) {
+  const k = (c||'').toLowerCase();
+  const h = Object.entries(COLOR_MAP).find(([key]) => k.includes(key))?.[1];
+  return h ? `<span class="tag-color-swatch" style="background:${h}"></span>` : '';
+}
+
+function srcTag(s) {
+  const m = { 'Facebook Group':['src-fb','📘'], 'Facebook Message':['src-fb','💬'],
+    'Text Message':['src-txt','📱'], 'Instagram':['src-in','📸'],
+    'Email':['src-em','📧'], 'Square Website':['src-sq','🌐'], 'In Person':['src-in','🤝'] };
+  const [cls,ico] = m[s] || ['','🔗'];
+  return `<span class="tag ${cls}">${ico} ${s}</span>`;
+}
+
+// ── RENDER TABLE ──────────────────────────────────────────────
+function renderTable(data, container, compact = false) {
+  if (!data.length) {
+    container.innerHTML = `<div class="empty"><div class="empty-icon">📭</div><h3>No orders here</h3><p>Add one using the ➕ Add Order tab</p></div>`;
+    return;
+  }
+  const srcCol = compact ? '' : '<th>Source</th>';
+  const rows = data.map(o => `
+    <tr class="${o.delivered ? 'delivered-row' : ''}">
+      <td>${o.date}</td>
+      <td><strong>${o.name}</strong></td>
+      <td><span class="tag tag-size">${o.size||'—'}</span></td>
+      <td><span class="tag tag-type">${o.type||'—'}</span></td>
+      <td>${swatchFor(o.color)}${o.color||'—'}</td>
+      <td>${o.desc||'—'}</td>
+      <td><strong>$${(+o.price||0).toFixed(2)}</strong></td>
+      <td><span class="${o.paid==='YES'?'badge-paid':'badge-unpaid'}">${o.paid==='YES'?'✅ Paid':'❌ Unpaid'}</span></td>
+      ${compact ? '' : `<td>${srcTag(o.source)}</td>`}
+      <td><input type="checkbox" class="chk" ${o.created?'checked':''} onchange="toggle('${o.id}','created',this.checked)" title="Created"></td>
+      <td><input type="checkbox" class="chk" ${o.delivered?'checked':''} onchange="toggle('${o.id}','delivered',this.checked)" title="Delivered"></td>
+      <td>
+        <button class="btn btn-ghost btn-sm" onclick="openEdit('${o.id}')">✏️</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteOrder('${o.id}')">🗑</button>
+      </td>
+    </tr>`).join('');
+  container.innerHTML = `
+    <table><thead><tr>
+      <th>Date</th><th>Name</th><th>Size</th><th>Type</th><th>Color</th>
+      <th>Description</th><th>Price</th><th>Paid?</th>${srcCol}
+      <th>Created?</th><th>Delivered?</th><th>Actions</th>
+    </tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+function renderOrders() {
+  const search = (document.getElementById('search-input')?.value||'').toLowerCase();
+  const paid   = document.getElementById('filter-paid')?.value||'';
+  const src    = document.getElementById('filter-source')?.value||'';
+  const dlvd   = document.getElementById('filter-delivered')?.value||'';
+  let f = [...orders].sort((a,b) => b.date.localeCompare(a.date));
+  if (search) f = f.filter(o => [o.name,o.desc,o.color,o.type,o.size,o.source].join(' ').toLowerCase().includes(search));
+  if (paid)   f = f.filter(o => o.paid === paid);
+  if (src)    f = f.filter(o => o.source === src);
+  if (dlvd==='yes') f = f.filter(o => o.delivered);
+  if (dlvd==='no')  f = f.filter(o => !o.delivered);
+  renderTable(f, document.getElementById('orders-table-wrap'));
+}
+
+// ── DASHBOARD ─────────────────────────────────────────────────
+function renderDashboard() {
+  const total       = orders.length;
+  const unpaid      = orders.filter(o => o.paid==='NO').length;
+  const pending     = orders.filter(o => !o.delivered).length;
+  const revenue     = orders.filter(o => o.paid==='YES').reduce((s,o)=>s+(+o.price||0),0);
+  const outstanding = orders.filter(o => o.paid==='NO').reduce((s,o)=>s+(+o.price||0),0);
+  document.getElementById('stats-row').innerHTML = `
+    <div class="stat"><div class="stat-num">${total}</div><div class="stat-label">Total Orders</div></div>
+    <div class="stat green"><div class="stat-num">$${revenue.toFixed(0)}</div><div class="stat-label">Revenue Collected</div></div>
+    <div class="stat red"><div class="stat-num">$${outstanding.toFixed(0)}</div><div class="stat-label">Outstanding Balance</div></div>
+    <div class="stat teal"><div class="stat-num">${pending}</div><div class="stat-label">Pending Delivery</div></div>
+    <div class="stat"><div class="stat-num">${unpaid}</div><div class="stat-label">Awaiting Payment</div></div>`;
+  renderTable(orders.filter(o=>o.paid==='NO'&&!o.delivered).slice(0,10), document.getElementById('attention-table'), true);
+  renderTable([...orders].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,8), document.getElementById('recent-table'), true);
+}
+
+// ── TOGGLE / DELETE / EDIT ────────────────────────────────────
+function toggle(id, field, val) {
+  const o = orders.find(x=>x.id===id); if(o){ o[field]=val; save(); }
+}
+function updateBadge() {
+  document.getElementById('pending-badge').textContent = `${orders.filter(o=>!o.delivered).length} Pending`;
+}
+function deleteOrder(id) {
+  if (!confirm('Delete this order?')) return;
+  orders = orders.filter(o=>o.id!==id); save(); renderOrders(); renderDashboard(); toast('Deleted');
+}
+function openEdit(id) {
+  const o = orders.find(x=>x.id===id); if(!o) return;
+  document.getElementById('edit-id').value = id;
+  ['name','size','type','color','price','paid','desc'].forEach(f => document.getElementById('e-'+f).value = o[f]);
+  document.getElementById('edit-modal').classList.add('open');
+}
+function closeModal() { document.getElementById('edit-modal').classList.remove('open'); }
+function saveEdit() {
+  const id = document.getElementById('edit-id').value;
+  const o  = orders.find(x=>x.id===id); if(!o) return;
+  ['name','size','type','color','paid','desc'].forEach(f => o[f] = document.getElementById('e-'+f).value);
+  o.price = parseFloat(document.getElementById('e-price').value)||0;
+  save(); closeModal(); renderOrders(); renderDashboard(); toast('Updated ✦','success');
+}
+
+// ── EXPORT CSV ────────────────────────────────────────────────
+function exportCSV() {
+  const hdrs = ['Date','Name','Size','Type','Color','Description','Price','Paid','Source','Notes','Created','Delivered'];
+  const rows = orders.map(o => [o.date,o.name,o.size,o.type,o.color,o.desc,o.price,o.paid,o.source,o.notes,o.created?'Yes':'No',o.delivered?'Yes':'No']
+    .map(v=>`"${(v||'').toString().replace(/"/g,'""')}"`).join(','));
+  const csv = [hdrs.join(','), ...rows].join('\n');
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+  a.download = `rossell-orders-${new Date().toISOString().slice(0,10)}.csv`;
+  a.click(); toast('CSV exported!','success');
+}
+
+// ── GOOGLE SHEET SYNC ─────────────────────────────────────────
+function onUrlInput() {
+  const v = document.getElementById('sheet-url').value.trim();
+  if (!v) updateConnectionUI(false);
+}
+
+async function saveAndTest() {
+  const url = document.getElementById('sheet-url').value.trim();
+  if (!url || !url.includes('script.google.com')) {
+    toast('Please paste a valid Google Apps Script URL', 'error'); return;
+  }
+  localStorage.setItem('rc_sheet_url', url);
+  sheetUrl = url;
+  document.getElementById('conn-status').innerHTML = '⏳ Testing connection…';
+  await pullFromSheet(true);
+}
+
+// Google Apps Script blocks fetch() due to redirects + CORS.
+// JSONP injects a <script> tag instead — no CORS issues at all.
+function jsonpFetch(url) {
+  return new Promise((resolve, reject) => {
+    const cbName = 'rc_cb_' + Date.now();
+    const timeout = setTimeout(() => {
+      delete window[cbName];
+      script.remove();
+      reject(new Error('Request timed out. Check your URL and deployment settings.'));
+    }, 12000);
+
+    window[cbName] = (data) => {
+      clearTimeout(timeout);
+      delete window[cbName];
+      script.remove();
+      resolve(data);
+    };
+
+    const script = document.createElement('script');
+    script.src = `${url}?action=list&callback=${cbName}`;
+    script.onerror = () => {
+      clearTimeout(timeout);
+      delete window[cbName];
+      reject(new Error('Script load failed. Make sure "Who has access" is set to "Anyone" in your deployment.'));
+    };
+    document.head.appendChild(script);
+  });
+}
+
+async function pullFromSheet(isTest = false) {
+  if (!sheetUrl) {
+    document.getElementById('sync-log').innerHTML = '<span style="color:var(--red)">⚠️ No Google Sheet URL saved. Add it in the connection box above.</span>';
+    return;
+  }
+  try {
+    document.getElementById('sync-log').innerHTML = '⏳ Pulling orders from Google Sheet…';
+    const data = await jsonpFetch(sheetUrl);
+
+    if (data.error) throw new Error(data.error);
+
+    const sheetOrders = data.orders || [];
+    let added = 0;
+
+    sheetOrders.forEach(row => {
+      const sqId = row['Order ID'] || '';
+      const exists = orders.some(o => (o.squareId && o.squareId === sqId) || (sqId && o.notes?.includes(sqId)));
+      if (exists) return;
+
+      orders.unshift({
+        id: uid(),
+        date:      row['Date'] || new Date().toISOString().slice(0,10),
+        name:      row['Customer Name'] || 'Square Customer',
+        size:      row['Size'] || '',
+        type:      row['Product Type'] || '',
+        color:     row['Color'] || '',
+        desc:      row['Description'] || '',
+        price:     parseFloat(row['Price']) || 0,
+        paid:      row['Paid'] || 'NO',
+        source:    row['Source'] || 'Square Website',
+        notes:     row['Notes'] || '',
+        squareId:  sqId,
+        created:   row['Created?'] === 'true' || row['Created?'] === true,
+        delivered: row['Delivered?'] === 'true' || row['Delivered?'] === true,
+      });
+      added++;
+    });
+
+    save();
+    isConnected = true;
+    updateConnectionUI(true);
+    const now = new Date().toLocaleTimeString();
+    document.getElementById('sync-log').innerHTML =
+      `<span style="color:var(--green)">✅ Sync complete — ${added} new order${added!==1?'s':''} pulled (${sheetOrders.length} total in sheet). Last sync: ${now}</span>`;
+    document.getElementById('last-sync-text').textContent = `Last synced: ${now}`;
+    if (isTest) toast(`Connected! ${added} orders pulled.`, 'success');
+    else if (added) toast(`${added} new Square orders!`, 'success');
+    renderDashboard();
+  } catch(err) {
+    isConnected = false;
+    updateConnectionUI(false);
+    document.getElementById('sync-log').innerHTML =
+      `<span style="color:var(--red)">❌ ${err.message}</span>`;
+    if (isTest) toast('Connection failed — see error below', 'error');
+  }
+}
+
+function updateConnectionUI(connected) {
+  const status = document.getElementById('conn-status');
+  const indicator = document.getElementById('sync-indicator');
+  if (connected) {
+    status.innerHTML = '<span class="status-connected"><span class="sync-dot live"></span> Connected to Google Sheet</span>';
+    indicator.innerHTML = '<span class="sync-dot live" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#4CAF50;margin-right:4px"></span><span style="color:#6FE082;font-size:.78rem">Live</span>';
+    // Mark steps as done
+    ['step1','step2','step3','step4','step5'].forEach(id => document.getElementById(id)?.classList.add('done'));
+  } else {
+    status.innerHTML = '<span class="status-disconnected">Not connected — paste your Web App URL above</span>';
+    indicator.innerHTML = '<span style="color:rgba(255,255,255,.5);font-size:.78rem">⚪ Not connected</span>';
+  }
+}
+
+function setAutoSync() {
+  clearInterval(autoTimer);
+  const mins = parseInt(document.getElementById('sync-interval').value);
+  if (mins > 0) {
+    autoTimer = setInterval(() => pullFromSheet(), mins * 60000);
+    toast(`Auto-sync every ${mins} minute${mins>1?'s':''}`, 'success');
+  }
+}
+
+// ── TOAST ─────────────────────────────────────────────────────
+function toast(msg, type='') {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.className = `show ${type}`;
+  setTimeout(() => el.className = '', 2800);
+}
+
+// ── INIT ──────────────────────────────────────────────────────
+renderDashboard();
+updateBadge();
+</script>
+</body>
+</html>
